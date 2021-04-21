@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能自动数据获取分析系统</title>
+</head>
+<body>
+    <h2>选择一种汽车</h2>
+    <form action="{% url 'crawler:scrawler' %}" method="post">
+        {% csrf_token %}
+        <select name="topic_tag" id="topic_tag">
+            <option value="#宝马" selected>宝马</option>
+            <option value="#奥迪">奥迪</option>
+            <option value="#奔驰">奔驰</option>
+        </select>
+        <p></p>
+        <input type="submit" value="提交">
+    </form>
+</body>
+</html>
