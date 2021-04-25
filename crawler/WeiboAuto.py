@@ -71,52 +71,6 @@ class WeiboAuto(object):
                 return weibo
             sleep(random.randint(6, 10))
 
-    def get_pics(self, weibo_info):
-        """获取微博原始图片url"""
-        if weibo_info.get('pics'):
-            pic_info = weibo_info['pics']
-            pic_list = [pic['large']['url'] for pic in pic_info]
-            pics = ','.join(pic_list)
-        else:
-            pics = ''
-        return pics
-
-    def get_live_photo(self, weibo_info):
-        """获取live photo中的视频url"""
-        live_photo_list = []
-        live_photo = weibo_info.get('pic_video')
-        if live_photo:
-            prefix = 'https://video.weibo.com/media/play?livephoto=//us.sinaimg.cn/'
-            for i in live_photo.split(','):
-                if len(i.split(':')) == 2:
-                    url = prefix + i.split(':')[1] + '.mov'
-                    live_photo_list.append(url)
-            return live_photo_list
-
-    def get_video_url(self, weibo_info):
-        """获取微博视频url"""
-        video_url = ''
-        video_url_list = []
-        if weibo_info.get('page_info'):
-            if weibo_info['page_info'].get(
-                    'urls') and weibo_info['page_info'].get('type') == 'video':
-                media_info = weibo_info['page_info']['urls']
-                video_url = media_info.get('mp4_720p_mp4')
-                if not video_url:
-                    video_url = media_info.get('mp4_hd_url')
-                    if not video_url:
-                        video_url = media_info.get('mp4_sd_url')
-                        if not video_url:
-                            video_url = media_info.get('stream_url_hd')
-                            if not video_url:
-                                video_url = media_info.get('stream_url')
-        if video_url:
-            video_url_list.append(video_url)
-        live_photo_list = self.get_live_photo(weibo_info)
-        if live_photo_list:
-            video_url_list += live_photo_list
-        return ';'.join(video_url_list)
-
     def get_location(self, selector):
         """获取微博发布位置"""
         location_icon = 'timeline_card_small_location_default.png'
@@ -220,7 +174,7 @@ class WeiboAuto(object):
         else:
             weibo['user_id'] = ''
             weibo['screen_name'] = ''
-        weibo['id'] = int(weibo_info['id'])
+        weibo['id'] = weibo_info['id']
         weibo['bid'] = weibo_info['bid']
         text_body = weibo_info['text']
         selector = etree.HTML(text_body)
@@ -338,7 +292,7 @@ class WeiboAuto(object):
                                 self.weibo.append(wb)
                                 self.weibo_id_list.append(wb['id'])
                                 self.got_count += 1
-                                self.print_weibo(wb)
+                                # self.print_weibo(wb)
                             else:
                                 print(u'正在过滤转发微博')
             else:
@@ -382,24 +336,24 @@ class WeiboAuto(object):
                         sleep(random.randint(6, 10))
                         page1 = page
                         random_pages = random.randint(1, 5)
-
-            print(u'微博爬取完成，共爬取{}条微博'.format(self.got_count))
+                print(u'微博爬取完成，共爬取{}条微博'.format(self.got_count))
+            else:
+                print(u'请检查起始日期是否输入不合理！')
         except Exception as e:
             print(e)
+
     def get_weibos(self):
         return self.weibo
 
     def start(self,query):
         """运行爬虫"""
         self.query = query
-        self.since_date = '2018-01-01'
+        self.since_date = '2020-01-01'
         self.start_page = 1
         self.get_pages()
-        print('信息抓取完毕')
-        print('*' * 100)
 
-#wb = WeiboAuto()
-#wb.start(query="#宝马")  # 爬取微博信息
+# wb = WeiboAuto()
+# wb.start(query="#宝马")  # 爬取微博信息
 
 # 宝马 奥迪 奔驰
 # 微博 汽车之家论坛 知乎 汽车话题的评论 top10评论 词云正负面 前十名话题

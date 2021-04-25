@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.bootcss.com/jquery/3.0.0/jquery.min.js"></script>
+    <!--
+    <script src="https://assets.pyecharts.org/assets/echarts.min.js"></script>
+	<script src="https://cdn.bootcss.com/echarts/4.2.1-rc1/echarts.min.js"></script>
+    -->
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    {% load static %}
+    <script src="{% static 'js/echarts-wordcloud.js' %}"></script>
+    <script src="{% static 'js/echarts-wordcloud.min.js' %}"></script>
+    <title>echarts</title>
+</head>
+<body>
+    <h2>宝马</h2>
+    <div id="WordCloud1" style="width: 800px;height: 500px;"></div>
+    <h2>奔驰</h2>
+    <div id="WordCloud2" style="width: 800px;height: 500px;"></div>
+    <h2>奥迪</h2>
+    <div id="WordCloud3" style="width: 800px;height: 500px;"></div>
+    <script>
+        function WordCloud(data){
+            var ans_tag = ["宝马","奔驰","奥迪"];
+            for(var i = 0; i < ans_tag.length; i++){
+                var myChart = echarts.init(document.getElementById('WordCloud'+String(i+1)));
+                var res = data[ans_tag[i]];
+                if (res['success'] == 1){
+                    var curdata = res['data'];
+                    var option = {
+                        tooltip:{
+                            trigger: 'item',
+                        },
+                        series: [
+                            {
+                                type:"wordCloud",
+                                name:'频数统计',
+                                shape:"circle",
+                                left: 'center',
+                                top: 'center',
+                                width: '100%',
+                                height: '100%',
+                                right: null,
+                                bottom: null,
+                                sizeRange: [14, 100],
+                                rotationRange: [-90, 90],
+                                rotationStep: 45,
+                                gridSize: 18,
+                                layoutAnimation: true,
+                                drawOutOfBound: false,
+                                textStyle: {
+                                    fontFamily: 'sans-serif',
+                                    fontWeight: 'bold',
+                                    // Color can be a callback function or a color string
+                                    color: function () {
+                                        // Random color
+                                        return 'rgb(' + [
+                                            Math.round(Math.random() * 160),
+                                            Math.round(Math.random() * 160),
+                                            Math.round(Math.random() * 160)
+                                        ].join(',') + ')';
+                                    }
+                                },
+                                emphasis: {
+                                    focus: 'self',
+                                    textStyle: {
+                                        shadowBlur: 10,
+                                        shadowColor: '#333'
+                                    }
+                                },
+                                data:curdata
+                            }
+                        ]
+                    };
+                    myChart.setOption(option);
+                }else{
+                    console.log(res['error_msg']);
+                }
+            }
+            /*
+            myChart1.on('mouseover',(params)=>{
+                
+            });
+            */
+        }
+
+        window.onload = function () {
+            $.ajax({
+                url: "/crawler/echarts/",
+                type:"POST",
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    WordCloud(data)
+                    console.log(data)
+                }
+            })
+        }
+    </script>
+</body>
+</html>
