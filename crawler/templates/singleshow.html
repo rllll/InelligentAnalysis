@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.bootcss.com/jquery/3.0.0/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    <title>singleshow</title>
+</head>
+<body>
+    <div id="item1" style="width: 100%;height: 600px;"></div>
+    <div style="display: flex;">
+        <div id="item2_pos" style="width: 50%;height: 800px;"></div>
+        <div id="item2_neg" style="width: 50%;height: 800px;"></div>
+    </div>
+    <script>
+        function item1(data){
+            var myChart = echarts.init(document.getElementById('item1'));
+            var mydata = [];
+            if (data['item1']['success'] == 1){
+                mydata = data['item1']['data'];
+            }
+            var tag = '{{tag}}';
+            tag = tag.substr(1,tag.length);
+            var option = {
+                tooltip:{
+                    trigger:'item'
+                },
+                title:{
+                    text:tag+'频数分布图',
+                    left:'center',
+                    top:'top'
+                },
+                dataset: [{
+                    dimensions: ['name', 'value'],
+                    source: mydata
+                }, {
+                    transform: {
+                        type: 'sort',
+                        config: { dimension: 'value', order: 'desc' }
+                    }
+                }],
+                xAxis: {
+                    type: 'category',
+                    axisLabel: { interval: 0, rotate: 30 },
+                },
+                yAxis: {
+                    type:'value',
+                    name:'频数统计'
+                },
+                series: {
+                    type: 'bar',
+                    name:"频数统计",
+                    encode: { x: 'name', y: 'value' },
+                    datasetIndex: 1
+                }
+            };
+            myChart.setOption(option);
+        }
+        function item2(data){
+            var titles = ["积极情绪","消极情绪"];
+            var en_id = ["pos","neg"];
+            for (var i = 0; i < titles.length; i++){
+                var curdata = [];
+                if (data['item2']['success'] == 1){
+                    if (i == 0){
+                        curdata = data['item2']['pos_data'];
+                    }else{
+                        curdata = data['item2']['neg_data'];
+                    }
+                }
+                var leg = [];
+                for (var j = 0; j < curdata.length; j++){
+                    leg.push(curdata[j].name);
+                }
+                var myChart = echarts.init(document.getElementById("item2_"+en_id[i]));
+                var option = {
+                    title: {
+                        text: titles[i]+'词汇统计',
+                        subtext: '基于微博评论',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                    },
+                    legend: {
+                        type: 'scroll',
+                        orient: 'vertical',
+                        right: 10,
+                        top: 20,
+                        bottom: 20,
+                        data: leg,
+                        selected: data.selected
+                    },
+                    series: [
+                        {
+                            name: '情绪词汇',
+                            type: 'pie',
+                            radius: '55%',
+                            center: ['40%', '50%'],
+                            data: curdata,
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                };
+                myChart.setOption(option);
+            }
+        }
+        
+        window.onload = function(){
+            $.ajax({
+                url: "/crawler/showgetdata/",
+                type:"POST",
+                data: {
+                    'tag':'{{tag}}',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    item1(data);
+                    item2(data);
+                    console.log(data);
+                }
+            })
+        }
+    </script>
+</body>
+</html>

@@ -16,12 +16,12 @@
     <title>echarts</title>
 </head>
 <body>
-    <h2>宝马</h2>
-    <div id="WordCloud1" style="width: 800px;height: 500px;"></div>
-    <h2>奔驰</h2>
-    <div id="WordCloud2" style="width: 800px;height: 500px;"></div>
-    <h2>奥迪</h2>
-    <div id="WordCloud3" style="width: 800px;height: 500px;"></div>
+    <h2><a href="{% url 'crawler:singleshow' '#宝马' %}">宝马</a></h2>
+    <div id="WordCloud1" style="width: 930px;height: 720px;"></div>
+    <h2><a href="{% url 'crawler:singleshow' '#奔驰' %}">奔驰</a></h2>
+    <div id="WordCloud2" style="width: 930px;height: 720px;"></div>
+    <h2><a href="{% url 'crawler:singleshow' '#奥迪' %}">奥迪</a></h2>
+    <div id="WordCloud3" style="width: 930px;height: 720px;"></div>
     <script>
         function WordCloud(data){
             var ans_tag = ["宝马","奔驰","奥迪"];
@@ -33,6 +33,11 @@
                     var option = {
                         tooltip:{
                             trigger: 'item',
+                        },
+                        title:{
+                            text:ans_tag[i],
+                            subtext:'微博词云展示',
+                            left:'center'
                         },
                         series: [
                             {
@@ -80,11 +85,6 @@
                     console.log(res['error_msg']);
                 }
             }
-            /*
-            myChart1.on('mouseover',(params)=>{
-                
-            });
-            */
         }
 
         window.onload = function () {

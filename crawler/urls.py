@@ -7,5 +7,7 @@ urlpatterns = [
     path('startcrawler/',views.startcrawler, name="scrawler"),
     path('show/',views.show, name='show'),
     path('toptopic/',views.toptopic,name='toptopic'),
-    path('echarts/',views.echarts,name='echarts')
+    path('echarts/',views.echarts,name='echarts'),
+    path('singleshow/<tag>',views.singleshow,name='singleshow'),
+    path('showgetdata/',views.showgetdata,name='showgetdata')
 ]
