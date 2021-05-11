@@ -20,6 +20,18 @@
 |tc_topics|CharField(1000)|所属主题|
 |tc_at_users|CharField(1000)|@用户|
 
+汽车之家口碑（AutohomeData）
+
+|属性|类型|备注|
+|:----:|:----:|:----:|
+|auto_id|AutoField|编号id|
+|auto_brand|CharField|品牌|
+|auto_series|CharField|车系|
+|auto_category|CharField|类别|
+|auto_tag|CharField|标签|
+|auto_evaluate|CharField|正负面评估|
+|auto_text|CharField|内容|
+
 ## 逻辑设计
 
 * 首页显示宝马，奔驰，奥迪三类车型的微博词云
