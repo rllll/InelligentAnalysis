@@ -24,3 +24,17 @@ class TopicComment(models.Model):
     class Meta:
         verbose_name="话题评论"
         verbose_name_plural="话题评论"
+
+class AutohomeData(models.Model):
+    auto_id = models.AutoField(primary_key=True,verbose_name="编号id")
+    auto_brand = models.CharField(max_length=50,verbose_name="品牌")
+    auto_series = models.CharField(max_length=100,null=True,blank=True,verbose_name="车系")
+    auto_category = models.CharField(max_length=100,null=True,blank=True,verbose_name="类别")
+    auto_tag = models.CharField(max_length=100,null=True,blank=True,verbose_name="标签")
+    auto_evaluate = models.CharField(max_length=10,null=True,blank=True,verbose_name="正负面评估")
+    auto_text = models.CharField(max_length=5000,null=True,blank=True,verbose_name="内容")
+    def __str__(self):
+        return self.auto_brand + "[ " + self.auto_series + " ]" + "[ " + self.auto_category + ' ]'
+    class Meta:
+        verbose_name="汽车之家口碑"
+        verbose_name_plural="汽车之家口碑"

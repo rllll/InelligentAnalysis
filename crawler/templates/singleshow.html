@@ -14,7 +14,12 @@
         <div id="item2_pos" style="width: 50%;height: 800px;"></div>
         <div id="item2_neg" style="width: 50%;height: 800px;"></div>
     </div>
+    <h2><center>汽车之家数据</center></h2>
+    <div id="autohome1" style="width: 100%;height: 700px;"></div>
+    <h2><center>{{tag}}所有车系各类别口碑数量分布</center></h2>
+    <div id="autohome2" style="width: 100%;height: 1400px;"></div>
     <script>
+
         function item1(data){
             var myChart = echarts.init(document.getElementById('item1'));
             var mydata = [];
@@ -52,6 +57,10 @@
                 series: {
                     type: 'bar',
                     name:"频数统计",
+                    label: {
+                        show: true,
+                        position: 'top'
+                    },
                     encode: { x: 'name', y: 'value' },
                     datasetIndex: 1
                 }
@@ -114,6 +123,231 @@
             }
         }
         
+        function dealdataset(dataset,emotion_data,negpartdata,pospartdata){
+            var chart = echarts.init(document.getElementById('autohome2'));
+            var option;
+            setTimeout(function(){
+                option = {
+                    legend: {},
+                    tooltip: {
+                        trigger: 'axis',
+                        showContent: true
+                    },
+                    dataset: {
+                        source: dataset
+                    },
+                    xAxis: {type: 'category'},
+                    yAxis: {gridIndex: 0},  
+                    grid: {top: '68%'},
+                    legend:{
+                        orient: 'vertical',
+                        left: 'left',
+                        type:'scroll'
+                    },
+                    series: [
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {type: 'line', smooth: true, seriesLayoutBy: 'row', emphasis: {focus: 'series'}},
+                        {
+                            name:'【' + dataset[0][1]+'】类别分布',
+                            type: 'pie',
+                            id: 'pie',
+                            radius: '20%',
+                            center: ['30%', '20%'],
+                            emphasis: {focus: 'data'},
+                            label: {
+                                formatter: '{b}: {@' + dataset[0][1] + '} ({d}%)'
+                            },
+                            tooltip:{
+                                trigger:'item'
+                            },
+                            encode: {
+                                itemName: '车系',
+                                value: dataset[0][1],
+                                tooltip: dataset[0][1]
+                            }
+                        },
+                        {
+                            name: '【'+dataset[0][1]+'】正负面评价',
+                            id:'e_pie0',
+                            type: 'pie',
+                            radius: '20%',
+                            center:['70%','20%'],
+                            label: {
+                                formatter: '{b}: ({d}%)'
+                            },
+                            tooltip:{
+                                trigger:'item'
+                            },
+                            data: emotion_data[0]
+                        },
+                        {
+                            name: '【'+dataset[0][1]+'】负面标签分布',
+                            id:'e_pie1',
+                            type: 'pie',
+                            radius: ['8%', '25%'],
+                            label: {
+                                show: false,
+                                position: 'center'
+                            },
+                            emphasis: {
+                                label: {
+                                    show: true,
+                                    fontSize: '15',
+                                    fontWeight: 'bold'
+                                }
+                            },
+                            center:['30%','45%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            tooltip:{
+                                trigger:'item'
+                            },
+                            data: negpartdata[0]
+                        },
+                        {
+                            name: '【'+dataset[0][1]+'】正面标签分布',
+                            id:'e_pie2',
+                            type: 'pie',
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            radius: ['8%', '25%'],
+                            label: {
+                                show: false,
+                                position: 'center'
+                            },
+                            emphasis: {
+                                label: {
+                                    show: true,
+                                    fontSize: '15',
+                                    fontWeight: 'bold'
+                                }
+                            },
+                            center:['70%','45%'],
+                            tooltip:{
+                                trigger:'item'
+                            },
+                            data: pospartdata[0]
+                        },
+                    ]
+                };
+                // updateAxisPointer
+                chart.on('click', 'series.line',function (event) {
+                    console.log(event);
+                    var dataIndex = event.dataIndex;
+                    if (dataIndex) {
+                        var dimension = dataset[0][dataIndex+1];
+                        chart.setOption({
+                            series: [
+                                {
+                                    name:'【'+dimension+'】类别分布',
+                                    id: 'pie',
+                                    label: {
+                                        formatter: '{b}: {@' + dimension + '} ({d}%)'
+                                    },
+                                    encode: {
+                                        value: dimension,
+                                        tooltip: dimension
+                                    }
+                                },
+
+                                {
+                                    name:'【'+dimension+'】正负面评价',
+                                    id:'e_pie0',
+                                    data:emotion_data[dataIndex]
+                                },
+
+                                {
+                                    name:'【'+dimension+'】负面标签分布',
+                                    id:'e_pie1',
+                                    data:negpartdata[dataIndex]
+                                },
+
+                                {
+                                    name:'【'+dimension+'】正面标签分布',
+                                    id:'e_pie2',
+                                    data:pospartdata[dataIndex]
+                                },
+                            ]
+                        });
+                    }
+                });
+
+                chart.setOption(option);
+            });
+        }
+
+        function autohome(data){
+            var mychart = echarts.init(document.getElementById('autohome1'));
+            var series_list = data['series_list'];
+            var legend_list = [];
+            for (var i = 0; i < series_list.length; i++){
+                legend_list.push(series_list[i].name);
+            }
+            var options = {
+                title: {
+                    text: data['brand'] + '车系口碑数量分布玫瑰图',
+                    subtext: '数量统计',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} ({d}%)'
+                },
+                legend: {
+                    left: 'center',
+                    top: '60px',
+                    data: legend_list
+                },
+                toolbox: {
+                    show: true,
+                    feature: {
+                        mark: {show: true},
+                        dataView: {show: true, readOnly: false},
+                        saveAsImage: {show: true}
+                    }
+                },
+                series: [
+                    {
+                        name: data['brand']+'车系',
+                        type: 'pie',
+                        radius: [20, 140],
+                        center: ['50%', '50%'],
+                        roseType: 'radius',
+                        itemStyle: {
+                            borderRadius: 5
+                        },
+                        label: {
+                            show: false
+                        },
+                        emphasis: {
+                            label: {
+                                show: true
+                            }
+                        },
+                        data: series_list
+                    }
+                ]
+            };
+            mychart.setOption(options);
+
+            dealdataset(data['dataset'],data['emotions'],data['negpart'],data['pospart']);
+        }
+
+
         window.onload = function(){
             $.ajax({
                 url: "/crawler/showgetdata/",
@@ -127,7 +361,19 @@
                     item2(data);
                     console.log(data);
                 }
-            })
+            });
+            $.ajax({
+                url:"/crawler/autohomeapi/",
+                type:"POST",
+                data:{
+                    'brand':'{{tag}}',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(autohomedata){
+                    autohome(autohomedata);
+                    console.log(autohomedata);
+                }
+            });
         }
     </script>
 </body>

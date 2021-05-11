@@ -2,7 +2,7 @@ from django.shortcuts import render,redirect
 from django.http import HttpResponse,HttpResponseRedirect
 from django.urls import reverse
 import crawler.WeiboAuto
-from crawler.models import TopicComment
+from crawler.models import TopicComment,AutohomeData
 from datetime import datetime
 import jieba
 import wordcloud
@@ -45,6 +45,38 @@ def startcrawler(request):
         'topic_tag':topic_tag
     }
     return render(request,'show.html',context)
+
+def deleteautohome(request):
+    """
+    删除汽车之家所有数据
+    """
+    q = AutohomeData.objects.all().delete()
+    return HttpResponse("successfully!")
+
+def autohomedata(request):
+    """
+    将汽车之家数据存入数据库
+    """
+    cwd = os.getcwd()+'/data/'
+    for brand in os.listdir(cwd):
+        cur_path = cwd+brand+'/'
+        for txt in os.listdir(cur_path):
+            f = open(cur_path+txt,'r',encoding='utf-8')
+            for line in f.readlines():
+                line = line.strip('\n')
+                s_list = line.split(';')
+                if len(s_list) < 5:
+                    continue
+                q = AutohomeData()
+                q.auto_brand = brand
+                q.auto_series = s_list[0]
+                q.auto_category = s_list[1]
+                q.auto_tag = s_list[2]
+                q.auto_evaluate = s_list[3]
+                q.auto_text = s_list[4]
+                print('[正在存储...]'+brand+"("+s_list[0]+")"+"("+s_list[1]+")")
+                q.save()
+    return HttpResponse('successfully!')
 
 def show(request):
     try:
@@ -103,8 +135,10 @@ def show(request):
         print(e)
     return HttpResponse('this is a show page')
 
-
 def toptopic(request):
+    """
+    获取出现次数最多的前20的词汇
+    """
     try:
         query_set = TopicComment.objects.all()
         topic_list = []
@@ -124,6 +158,9 @@ def toptopic(request):
     return HttpResponse("this is top 10 topic")
 
 def get_data(tag):
+    """
+    获取数据
+    """
     response = {
         'success':1,
         'data':[]
@@ -159,6 +196,9 @@ def get_data(tag):
     return response
 
 def echarts(request):
+    """
+    获取三种车系的词云数据，总体页面
+    """
     if request.method == 'POST':
         q_list = ['#宝马','#奔驰','#奥迪']
         all_data = {}
@@ -170,6 +210,9 @@ def echarts(request):
         return render(request,'echarts.html',csrf(request))
 
 def singleshow(request,tag):
+    """
+    根据不同的车系，展示不同的数据页面
+    """
     mycsrf = csrf(request)
     context = {}
     context['tag'] = tag
@@ -177,6 +220,9 @@ def singleshow(request,tag):
     return render(request,'singleshow.html',context)
 
 def feelingdata(tag):
+    """
+    利用snownlp分析词汇的正负面，返回积极词汇和消极词汇
+    """
     response = {
         'success':1,
         'pos_data':[],
@@ -228,6 +274,11 @@ def feelingdata(tag):
     return response
 
 def showgetdata(request):
+    """
+    根据不同的tag（宝马，奥迪，奔驰）获取相应的数据
+    item1代表所有词汇，用于词云展示
+    item2区别了词汇情感正负面，用于展示
+    """
     if request.method == 'POST':
         tag = request.POST['tag']
         all_response = {}
@@ -254,5 +305,91 @@ def showgetdata(request):
         else:
             all_response['item2']['success'] = 0
         return JsonResponse(all_response)
+    else:
+        return {'error':'it is not a POST request!'}
+
+def autohomeapi(request):
+    """
+    汽车之家的数据获取内容
+    """
+    if request.method == 'POST':
+        autohome_data = {}
+        brand = request.POST['brand']
+        brand = brand[1:]
+        autohome_data['brand'] = brand
+        try:
+            q_set = AutohomeData.objects.filter(auto_brand=brand)
+            series_map = {}
+            dataset = []
+            dataset.append(['车系'])
+            xAix = ['空间','动力','操控','油耗','舒适性','外观','内饰','性价比']
+            for x in xAix:
+                cur_l = []
+                cur_l.append(x)
+                dataset.append(cur_l)
+            total_emotion = []
+            neg_part_data = []
+            pos_part_data = []
+            for q in q_set:
+                if q.auto_series not in dataset[0]:
+                    dataset[0].append(q.auto_series)
+                    e_list = []
+                    t0 = AutohomeData.objects.filter(auto_series=q.auto_series,auto_evaluate='0')
+                    it0 = {}
+                    it0['name'] = '负面评价'
+                    it0['value'] = len(t0)
+                    e_list.append(it0)
+
+                    part = []
+                    k_v = {}
+                    for m in t0:
+                        k_v[m.auto_tag] = k_v.get(m.auto_tag,0) + 1
+                    for k in k_v.keys():
+                        xxx = {}
+                        xxx['name'] = k
+                        xxx['value'] = k_v[k]
+                        part.append(xxx)
+                    neg_part_data.append(part)
+
+                    t1 = AutohomeData.objects.filter(auto_series=q.auto_series,auto_evaluate='1')
+                    it1 = {}
+                    it1['name'] = '正面评价'
+                    it1['value'] = len(t1)
+                    e_list.append(it1)
+
+                    part = []
+                    k_v = {}
+                    for m in t1:
+                        k_v[m.auto_tag] = k_v.get(m.auto_tag,0) + 1
+                    for k in k_v.keys():
+                        xxx = {}
+                        xxx['name'] = k
+                        xxx['value'] = k_v[k]
+                        part.append(xxx)
+                    pos_part_data.append(part)
+
+                    total_emotion.append(e_list)
+
+                    for i in range(len(xAix)):
+                        cur_query = AutohomeData.objects.filter(auto_series=q.auto_series,auto_category=xAix[i])
+                        size = len(cur_query)
+                        dataset[i+1].append(size)
+
+                series_map[q.auto_series] = series_map.get(q.auto_series,0) + 1
+            series_list = []
+            for key in series_map.keys():
+                item = {}
+                item['name'] = key
+                item['value'] = series_map[key]
+                series_list.append(item)
+        except Exception as e:
+            print(e)
+        # 该展示哪些数据呢？
+        autohome_data['series_list'] = series_list
+        autohome_data['dataset'] = dataset
+        autohome_data['emotions'] = total_emotion
+        autohome_data['negpart'] = neg_part_data
+        autohome_data['pospart'] = pos_part_data
+        return JsonResponse(autohome_data)
     else:
         return {'error':'it is not a POST request!'}
