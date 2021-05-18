@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    {% load static %}
+    <script src="{% static 'js/echarts-wordcloud.js' %}"></script>
+    <script src="{% static 'js/echarts-wordcloud.min.js' %}"></script>
+    <title>微博数据可视化</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'crawler:weiboshow' %}">微博</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车之家</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="container">
+        <div class="row" style="margin-top: 80px;">
+            <div class="col-sm text-center">
+                <h1>微博数据分析</h1>
+            </div>
+        </div>
+        <div class="row text-center" style="margin-top: 20px;">
+            <div class="col-sm">
+                <button type="button" id="brand1" style="width: 80%;" class="btn btn-outline-info">宝马</button>
+            </div>
+            <div class="col-sm">
+                <button type="button" id="brand2" style="width: 80%;" class="btn btn-outline-info">奥迪</button>
+            </div>
+            <div class="col-sm">
+                <button type="button" id="brand3" style="width: 80%;" class="btn btn-outline-info">奔驰</button>
+            </div>
+        </div>
+        <div class="row" style="margin-top: 30px;">
+            <div class="col-sm text-center">
+                <div id="wordcloud" style="width: 100%;height: 720px;"></div>
+            </div>
+        </div>
+        <div class="row" style="margin-top: 20px;">
+            <div id="sortComment" style="width: 100%;height: 600px;"></div>
+        </div>
+        <div class="row" style="margin-top: 20px">
+            <div class="col-sm">
+                <div id="item2_pos" style="width: 100%;height: 800px;"></div>
+            </div>
+            <div class="col-sm">
+                <div id="item2_neg" style="width: 100%;height: 800px;"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        function WordCloud(wcdata){
+            var mychart = echarts.init(document.getElementById('wordcloud'));
+            if (wcdata['success'] == 1){
+                var option = {
+                    tooltip:{
+                        trigger: 'item',
+                    },
+                    series: [
+                        {
+                            type:"wordCloud",
+                            name:'频数统计',
+                            shape:"circle",
+                            left: 'center',
+                            top: 'center',
+                            width: '100%',
+                            height: '100%',
+                            right: null,
+                            bottom: null,
+                            sizeRange: [14, 100],
+                            rotationRange: [-90, 90],
+                            rotationStep: 45,
+                            gridSize: 18,
+                            layoutAnimation: true,
+                            drawOutOfBound: false,
+                            textStyle: {
+                                fontFamily: 'sans-serif',
+                                fontWeight: 'bold',
+                                // Color can be a callback function or a color string
+                                color: function () {
+                                    // Random color
+                                    return 'rgb(' + [
+                                        Math.round(Math.random() * 160),
+                                        Math.round(Math.random() * 160),
+                                        Math.round(Math.random() * 160)
+                                    ].join(',') + ')';
+                                }
+                            },
+                            emphasis: {
+                                focus: 'self',
+                                textStyle: {
+                                    shadowBlur: 10,
+                                    shadowColor: '#333'
+                                }
+                            },
+                            data:wcdata['data']
+                        }
+                    ]
+                };
+                mychart.setOption(option);
+            }else{
+                console.log(wcdata['error_msg']);
+            }
+        }
+        
+        function item1(data){
+            var myChart = echarts.init(document.getElementById('sortComment'));
+            var mydata = [];
+            if (data['item1']['success'] == 1){
+                mydata = data['item1']['data'];
+            }
+            var option = {
+                tooltip:{
+                    trigger:'item'
+                },
+                title:{
+                    text:'频数分布图',
+                    left:'center',
+                    top:'top'
+                },
+                dataset: [{
+                    dimensions: ['name', 'value'],
+                    source: mydata
+                }, {
+                    transform: {
+                        type: 'sort',
+                        config: { dimension: 'value', order: 'desc' }
+                    }
+                }],
+                xAxis: {
+                    type: 'category',
+                    axisLabel: { interval: 0, rotate: 30 },
+                },
+                yAxis: {
+                    type:'value',
+                    name:'频数统计'
+                },
+                series: {
+                    type: 'bar',
+                    name:"频数统计",
+                    label: {
+                        show: true,
+                        position: 'top'
+                    },
+                    encode: { x: 'name', y: 'value' },
+                    datasetIndex: 1
+                }
+            };
+            myChart.setOption(option);
+        }
+        /*function item2(data){
+            var titles = ["积极情绪","消极情绪"];
+            var en_id = ["pos","neg"];
+            for (var i = 0; i < titles.length; i++){
+                var curdata = [];
+                if (data['item2']['success'] == 1){
+                    if (i == 0){
+                        curdata = data['item2']['pos_data'];
+                    }else{
+                        curdata = data['item2']['neg_data'];
+                    }
+                }
+                var leg = [];
+                for (var j = 0; j < curdata.length; j++){
+                    leg.push(curdata[j].name);
+                }
+                var myChart = echarts.init(document.getElementById("item2_"+en_id[i]));
+                var option = {
+                    title: {
+                        text: titles[i]+'词汇统计',
+                        subtext: '基于微博评论',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                    },
+                    legend: {
+                        type: 'scroll',
+                        orient: 'vertical',
+                        right: 10,
+                        top: 20,
+                        bottom: 20,
+                        data: leg,
+                        selected: data.selected
+                    },
+                    series: [
+                        {
+                            name: '情绪词汇',
+                            type: 'pie',
+                            radius: '55%',
+                            center: ['40%', '50%'],
+                            data: curdata,
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                };
+                myChart.setOption(option);
+            }
+        }
+        */
+        
+        function myajax(cur_brand){
+            $.ajax({
+                url: "/crawler/weiboshow/",
+                type:"POST",
+                data: {
+                    'curbrand':cur_brand,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    WordCloud(data);
+                }
+            });
+            $.ajax({
+                url: "/crawler/showgetdata/",
+                type:"POST",
+                data: {
+                    'tag':'#'+cur_brand,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    item1(data);
+                    //item2(data);
+                    console.log(data);
+                }
+            });
+        }
+
+        $('#brand1').click(function(){
+            myajax("宝马");
+        });
+
+        $('#brand2').click(function(){
+            myajax("奥迪");
+        });
+
+        $('#brand3').click(function(){
+            myajax("奔驰");
+        });
+
+    </script>
+</body>
+</html>

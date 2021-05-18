@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    <title>汽车之家数据</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:weiboshow' %}">微博</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车之家</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="container">
+        <div class="row" style="margin-top: 80px;">
+            <div class="col-sm text-center">
+                <h1>汽车之家品牌选择</h1>
+            </div>
+        </div>
+        <div class="row" style="margin-top: 30px;margin-bottom: 30px;">
+            <div class="col-sm">
+                <div class="card">
+                    <div class="card-header">
+                        <p class="text-info" style="font-size: 18px; margin-top: 5px;">当前选择：<span class="text-danger font-weight-bold" id="curselect"></span></p>
+                    </div>
+                    <div class="card-body">
+                        <div class="container">
+                            <div class="row text-center" style="margin-bottom: 20px;">
+                                <div class="col-sm">
+                                    <button type="button" id="bm" style="width: 80%;" class="btn btn-outline-primary">宝马</button>
+                                </div>
+                                <div class="col-sm">
+                                    <button type="button" id="ad" style="width: 80%;" class="btn btn-outline-primary">奥迪</button>
+                                </div>
+                                <div class="col-sm">
+                                    <button type="button" id="bc" style="width: 80%;" class="btn btn-outline-primary">奔驰</button>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm">
+                                    <table class="table table-bordered m-auto" style="width: 94%;">
+                                        <form>
+                                            <tbody id="update">
+                                            </tbody>
+                                        </form>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer text-right">
+                        <button type="button" id="compare" class="btn btn-success" style="width: 10%;">比较</button>
+                        <button type="button" id="submit" class="btn btn-success" style="width: 10%;">查看</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function tableUpdate(series){
+            var update = document.getElementById('update');
+            while(update.hasChildNodes()){
+                update.removeChild(update.firstChild);
+            }
+            var series_list = series['leg'];
+            var total = series_list.length;
+            var j = 0;
+            while (j < series_list.length){
+                var it_tr = document.createElement('tr');
+                for (var i = 1; i <= Math.min(4,total); i++){
+                    var it_td = document.createElement('td');
+                    var it_check = document.createElement('input');
+                    it_check.setAttribute('type','checkbox');
+                    it_check.setAttribute('value',series_list[j]);
+                    it_check.className = "form-check-input";
+                    var txt_node = document.createTextNode(series_list[j]);
+                    var it_label = document.createElement('label');
+                    it_label.className = "form-check-label";
+                    it_label.appendChild(it_check);
+                    it_label.appendChild(txt_node);
+                    var it_div = document.createElement('div');
+                    it_div.className = "form-check";
+                    it_div.appendChild(it_label);
+                    it_td.appendChild(it_div);
+                    it_tr.appendChild(it_td);
+                    j++;
+                }
+                total -= 4;
+                update.appendChild(it_tr);
+            }
+        }
+
+        function updateTable(brand){
+            $.ajax({
+                url: "/crawler/getlegend/",
+                type:"POST",
+                data: {
+                    'curbrand':brand,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    tableUpdate(data);
+                    console.log(data);
+                }
+            });
+        }
+
+        $('#bm').click(function(){
+            updateTable("宝马");
+            var curselect = document.getElementById('curselect');
+            curselect.innerHTML = "宝马";
+        });
+        $('#ad').click(function(){
+            updateTable("奥迪");
+            var curselect = document.getElementById('curselect');
+            curselect.innerHTML = "奥迪";
+        });
+        $('#bc').click(function(){
+            updateTable("奔驰");
+            var curselect = document.getElementById('curselect');
+            curselect.innerHTML = "奔驰";
+        });
+
+        function getSelectedList(){
+            var selected_list = [];
+            var table = document.getElementById('update');
+            var alltd = table.getElementsByTagName('td');
+            for (var i = 0; i < alltd.length; i++){
+                var childnodes = alltd[i].childNodes[0].childNodes[0].childNodes;
+                var inputcheck = childnodes[0];
+                if (inputcheck.checked == true){
+                    selected_list.push(i);
+                }
+            }
+            return selected_list;
+        }
+
+        $('#submit').click(function(){
+            var selected_list = getSelectedList();
+            var brand = document.getElementById('curselect').innerHTML;
+            if (selected_list.length == 0 || brand == ''){
+                alert("请选择品牌和车系！");
+                return;
+            }
+            if(window.localStorage){
+                localStorage.brand = brand;
+                localStorage.selected = selected_list;
+                location.href = "/crawler/ahshow/";
+            }else{
+                alert("当前浏览器不支持localStorage，请更换浏览器！");
+            }
+        });
+
+        $('#compare').click(function(){
+            var selected_list = getSelectedList();
+            var brand = document.getElementById('curselect').innerHTML;
+            if (selected_list.length == 0 || brand == ''){
+                alert("请选择品牌和车系！");
+                return;
+            }
+            if(window.localStorage){
+                localStorage.brand = brand;
+                localStorage.selected = selected_list;
+                location.href = "/crawler/compare/";
+            }else{
+                alert("当前浏览器不支持localStorage，请更换浏览器！");
+            }
+        });
+    </script>
+
+</body>
+</html>

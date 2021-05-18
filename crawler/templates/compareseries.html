@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    <title>比较车系可视化分析</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:weiboshow' %}">微博</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车之家</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="container-fluid" style="margin-top: 80px;">
+        <div class="row" style="margin-top: 30px;">
+            <div class="col-sm text-center">
+                <h1>比较车系</h1>
+            </div>
+        </div>
+        <div class="row" style="margin-top: 30px;">
+            <div class="col-sm-3">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        被比较车系
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered m-auto">
+                            <tbody id="becompared">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 20px;margin-bottom: 50px;">
+                    <div class="card-header bg-info text-white">
+                        可选比较车系
+                    </div>
+                    <div id="compareto" class="card-body" style="height: 400px;overflow-y: auto;">
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-7">
+
+            </div>
+            <div class="col-sm-2">
+                <div class="card">
+                    <div class="card-body">
+                        <button type="button" id="comparebyfeelings" class="btn btn-block btn-outline-success">正负比较</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function tableUpdate(data,selected){
+            var becompared = document.getElementById('becompared');
+            while(becompared.hasChildNodes()){
+                becompared.removeChild(becompared.firstChild);
+            }
+            var legends = [];
+            selected = selected.split(',');
+            for (var i = 0; i < selected.length; i++){
+                legends.push(data['leg'][selected[i]]);
+            }  
+            var total = legends.length;
+            var j = 0;
+            while (j < legends.length){
+                var it_tr = document.createElement('tr');
+                for (var i = 1; i <= Math.min(2,total); i++){
+                    var it_td = document.createElement('td');
+                    var it_check = document.createElement('input');
+                    it_check.setAttribute('type','checkbox');
+                    it_check.setAttribute('value',legends[j]);
+                    it_check.className = "form-check-input";
+                    var txt_node = document.createTextNode(legends[j]);
+                    var it_label = document.createElement('label');
+                    it_label.className = "form-check-label";
+                    it_label.appendChild(it_check);
+                    it_label.appendChild(txt_node);
+                    var it_div = document.createElement('div');
+                    it_div.className = "form-check";
+                    it_div.appendChild(it_label);
+                    it_td.appendChild(it_div);
+                    it_tr.appendChild(it_td);
+                    j++;
+                }
+                becompared.appendChild(it_tr);
+                total -= 2;
+            }
+        }
+
+        function compareToTable(mydata){
+            var compareto = document.getElementById('compareto');
+            while(compareto.hasChildNodes()){
+                compareto.removeChild(compareto.firstChild);
+            }
+            var all = mydata['all'];
+            for (var i = 0; i < all.length; i++){
+                var brand = all[i]['brand'];
+                var card = document.createElement('div');
+                card.className = "card";
+                var cardheader = document.createElement('div');
+                cardheader.className = "card-header bg-secondary text-white";
+                var title = document.createTextNode(brand);
+                cardheader.appendChild(title);
+                var cardbody = document.createElement('div');
+                cardbody.className = "card-body";
+                var table = document.createElement('table');
+                table.className = "table table-bordered m-auto";
+                var tbody = document.createElement('tbody');
+                var leg = all[i]['leg'];
+                var total = leg.length;
+                var j = 0;
+                while(j < leg.length){
+                    var it_tr = document.createElement('tr');
+                    for (var k = 1; k <= Math.min(2,total); k++){
+                        var it_td = document.createElement('td');
+                        var it_check = document.createElement('input');
+                        it_check.setAttribute('type','checkbox');
+                        it_check.setAttribute('value',leg[j]);
+                        it_check.className = "form-check-input";
+                        var txt_node = document.createTextNode(leg[j]);
+                        var it_label = document.createElement('label');
+                        it_label.className = "form-check-label";
+                        it_label.appendChild(it_check);
+                        it_label.appendChild(txt_node);
+                        var it_div = document.createElement('div');
+                        it_div.className = "form-check";
+                        it_div.appendChild(it_label);
+                        it_td.appendChild(it_div);
+                        it_tr.appendChild(it_td);
+                        j++;
+                    }
+                    tbody.appendChild(it_tr);
+                    total -= 2;
+                }
+                table.appendChild(tbody);
+                cardbody.appendChild(table);
+                card.appendChild(cardheader);
+                card.appendChild(cardbody);
+                compareto.appendChild(card);
+            }
+        }
+
+        window.onload = function(){
+            var brand = localStorage.brand;
+            var selected = localStorage.selected;
+            $.ajax({
+                url: "/crawler/getlegend/",
+                type:"POST",
+                data: {
+                    'curbrand':brand,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    tableUpdate(data,selected);
+                }
+            });
+            $.ajax({
+                url:"/crawler/compareto/",
+                type:"POST",
+                data: {
+                    'curbrand':brand,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    compareToTable(data);
+                }
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from django.http import HttpResponse,HttpResponseRedirect
+from django.http import HttpResponse,HttpResponseRedirect, response
 from django.urls import reverse
 import crawler.WeiboAuto
 from crawler.models import TopicComment,AutohomeData
@@ -16,6 +16,119 @@ from django.template.context_processors import csrf
 # Create your views here.
 def index(request):
     return render(request,'index.html')
+
+def autohomehtml(request):
+    return render(request,'autohome.html',csrf(request))
+
+def ahshow(request):
+    return render(request,'ahshow.html',csrf(request))
+
+def compareseries(request):
+    return render(request,'compareseries.html',csrf(request))
+
+def handleahshow(request):
+    if request.method == 'POST':
+        responsedata = {}
+        responsedata['feelings'] = []
+        responsedata['bytag'] = []
+        category = ['空间','动力','操控','油耗','舒适性','外观','内饰','性价比']
+        for c in category:
+            item = {}
+            item['name'] = c
+            item['value'] = 0
+            responsedata['bytag'].append(item)
+
+        select_series = request.POST['select_series']
+
+        try:
+            q_set = AutohomeData.objects.filter(auto_series=select_series)
+            pos_dict = {}
+            pos_dict['name'] = '积极'
+            neg_dict = {}
+            neg_dict['name'] = '消极'
+            for q in q_set:
+                if q.auto_evaluate == '1':
+                    pos_dict['value'] = pos_dict.get('value',0) + 1
+                elif q.auto_evaluate == '0':
+                    neg_dict['value'] = neg_dict.get('value',0) + 1
+                for i in range(len(category)):
+                    if q.auto_category == category[i]:
+                        responsedata['bytag'][i]['value'] += 1
+                        break
+            responsedata['feelings'].append(pos_dict)
+            responsedata['feelings'].append(neg_dict)
+        except Exception as e:
+            print(e)
+        return JsonResponse(responsedata)
+
+def handlecategory(request):
+    if request.method == "POST":
+        responsedata = {}
+        responsedata['rescategory'] = []
+        responsedata['resfeelings'] = []
+        select_series = request.POST['select_series']
+        select_category = request.POST['select_category']
+        try:
+            q_set = AutohomeData.objects.filter(auto_series=select_series,auto_category=select_category)
+            tags = {}
+            feel = {}
+            for q in q_set:
+                tags[q.auto_tag] = tags.get(q.auto_tag,0) + 1
+                if q.auto_evaluate == '1':
+                    feel['pos'] = feel.get('pos',0) + 1
+                elif q.auto_evaluate == '0':
+                    feel['neg'] = feel.get('neg',0) + 1
+            for t in tags:
+                item = {}
+                item['name'] = t
+                item['value'] = tags.get(t,0)
+                responsedata['rescategory'].append(item)
+            for f in feel:
+                item = {}
+                if f == 'pos':
+                    item['name'] = '积极'
+                else:
+                    item['name'] = '消极'
+                item['value'] = feel.get(f,0)
+                responsedata['resfeelings'].append(item)
+        except Exception as e:
+            print(e)
+        return JsonResponse(responsedata)
+
+def getSeriesByBrand(brand):
+    leg = []
+    try:
+        q_set = AutohomeData.objects.filter(auto_brand=brand)
+        for q in q_set:
+            ser = q.auto_series
+            if ser in leg:
+                continue
+            leg.append(ser)
+    except Exception as e:
+        print(e)
+    return leg
+
+def getlegend(request):
+    if request.method == 'POST':
+        brand = request.POST['curbrand']
+        leg = getSeriesByBrand(brand)
+        resdata = {'leg':leg}
+        return JsonResponse(resdata)
+
+def compareto(request):
+    if request.method == "POST":
+        responsedata = {}
+        allbrands = ['宝马','奥迪','奔驰']
+        brand = request.POST['curbrand']
+        responsedata['all'] = []
+        for b in allbrands:
+            if b != brand:
+                item = {}
+                item['brand'] = b
+                leg = getSeriesByBrand(b)
+                item['leg'] = leg
+                responsedata['all'].append(item)
+        return JsonResponse(responsedata)
 
 def startcrawler(request):
     topic_tag = request.POST['topic_tag']
@@ -78,85 +191,6 @@ def autohomedata(request):
                 q.save()
     return HttpResponse('successfully!')
 
-def show(request):
-    try:
-        query_set = TopicComment.objects.filter(tc_tag="#宝马")
-        text_list = []
-        for q in query_set:
-            cur_list = jieba.lcut(q.tc_text)
-            text_list += cur_list
-        positive_list = []
-        negative_list = []
-        for text in text_list:
-            each_word = snownlp.SnowNLP(text)
-            feeling = each_word.sentiments
-            if feeling >= 0.9:
-                positive_list.append(text)
-            elif feeling < 0.1:
-                negative_list.append(text)
-        positive_str = " ".join(positive_list)
-        negative_str = " ".join(negative_list)
-        text_str = " ".join(text_list)
-        cwd = os.getcwd()+'/crawler/'
-        stp_words_set = {line.strip() for line in open(cwd + 'cn_stopwords.txt',encoding='utf-8')}
-        w = wordcloud.WordCloud(width=1000,
-                                height=700,
-                                background_color='white',
-                                font_path='simhei.ttf',
-                                stopwords=stp_words_set)
-        w_p = wordcloud.WordCloud(width=1000,
-                                height=700,
-                                font_path="simhei.ttf",
-                                background_color='white',
-                                stopwords=stp_words_set)
-        w_n = wordcloud.WordCloud(width=1000,
-                                height=700,
-                                font_path="simhei.ttf",
-                                background_color='white',
-                                stopwords=stp_words_set)
-        w.generate(text_str)
-        
-        w_p.generate(positive_str)
-        w_n.generate(negative_str)
-        w.to_file(cwd + 'BMW.png')
-        w_p.to_file(cwd+'positive.png')
-        w_n.to_file(cwd+'negative.png')
-
-        pos_count = len(positive_list)
-        neg_count = len(negative_list)
-        labels = ['Positive Side', 'Negative Side']
-        fracs = [pos_count,neg_count]
-        explode = [0.1,0] # 0.1 凸出这部分，
-        plt.axes(aspect=1)
-        plt.pie(x=fracs, labels=labels, explode=explode,autopct='%3.1f %%',
-             shadow=True,labeldistance=1.1, startangle = 90,pctdistance = 0.6)
-        plt.savefig(cwd+"emotions_pie_chart.jpg",dpi = 360)
-    except Exception as e:
-        print(e)
-    return HttpResponse('this is a show page')
-
-def toptopic(request):
-    """
-    获取出现次数最多的前20的词汇
-    """
-    try:
-        query_set = TopicComment.objects.all()
-        topic_list = []
-        for q in query_set:
-            cur = q.tc_topics.split(',')
-            topic_list += cur
-        hash_count = {}
-        for topic in topic_list:
-            if topic in hash_count.keys():
-                hash_count[topic] += 1
-            else:
-                hash_count[topic] = 1
-        count_list = sorted(hash_count.items(), key = lambda x: x[1], reverse = True)
-        print(count_list[0:10])
-    except Exception as e:
-        print(e)
-    return HttpResponse("this is top 10 topic")
-
 def get_data(tag):
     """
     获取数据
@@ -195,29 +229,17 @@ def get_data(tag):
         response['error_msg'] = e
     return response
 
-def echarts(request):
+def weiboshow(request):
     """
     获取三种车系的词云数据，总体页面
     """
     if request.method == 'POST':
-        q_list = ['#宝马','#奔驰','#奥迪']
-        all_data = {}
-        for q in q_list:
-            res = get_data(q)
-            all_data[q[1:]] = res
-        return JsonResponse(all_data)
+        cur_brand = request.POST['curbrand']
+        cur_brand = '#' + cur_brand
+        res = get_data(cur_brand)
+        return JsonResponse(res)
     else:
-        return render(request,'echarts.html',csrf(request))
-
-def singleshow(request,tag):
-    """
-    根据不同的车系，展示不同的数据页面
-    """
-    mycsrf = csrf(request)
-    context = {}
-    context['tag'] = tag
-    context['csrf_token'] = mycsrf['csrf_token']
-    return render(request,'singleshow.html',context)
+        return render(request,'weiboshow.html',csrf(request))
 
 def feelingdata(tag):
     """
@@ -305,91 +327,3 @@ def showgetdata(request):
         else:
             all_response['item2']['success'] = 0
         return JsonResponse(all_response)
-    else:
-        return {'error':'it is not a POST request!'}
-
-def autohomeapi(request):
-    """
-    汽车之家的数据获取内容
-    """
-    if request.method == 'POST':
-        autohome_data = {}
-        brand = request.POST['brand']
-        brand = brand[1:]
-        autohome_data['brand'] = brand
-        try:
-            q_set = AutohomeData.objects.filter(auto_brand=brand)
-            series_map = {}
-            dataset = []
-            dataset.append(['车系'])
-            xAix = ['空间','动力','操控','油耗','舒适性','外观','内饰','性价比']
-            for x in xAix:
-                cur_l = []
-                cur_l.append(x)
-                dataset.append(cur_l)
-            total_emotion = []
-            neg_part_data = []
-            pos_part_data = []
-            for q in q_set:
-                if q.auto_series not in dataset[0]:
-                    dataset[0].append(q.auto_series)
-                    e_list = []
-                    t0 = AutohomeData.objects.filter(auto_series=q.auto_series,auto_evaluate='0')
-                    it0 = {}
-                    it0['name'] = '负面评价'
-                    it0['value'] = len(t0)
-                    e_list.append(it0)
-
-                    part = []
-                    k_v = {}
-                    for m in t0:
-                        k_v[m.auto_tag] = k_v.get(m.auto_tag,0) + 1
-                    for k in k_v.keys():
-                        xxx = {}
-                        xxx['name'] = k
-                        xxx['value'] = k_v[k]
-                        part.append(xxx)
-                    neg_part_data.append(part)
-
-                    t1 = AutohomeData.objects.filter(auto_series=q.auto_series,auto_evaluate='1')
-                    it1 = {}
-                    it1['name'] = '正面评价'
-                    it1['value'] = len(t1)
-                    e_list.append(it1)
-
-                    part = []
-                    k_v = {}
-                    for m in t1:
-                        k_v[m.auto_tag] = k_v.get(m.auto_tag,0) + 1
-                    for k in k_v.keys():
-                        xxx = {}
-                        xxx['name'] = k
-                        xxx['value'] = k_v[k]
-                        part.append(xxx)
-                    pos_part_data.append(part)
-
-                    total_emotion.append(e_list)
-
-                    for i in range(len(xAix)):
-                        cur_query = AutohomeData.objects.filter(auto_series=q.auto_series,auto_category=xAix[i])
-                        size = len(cur_query)
-                        dataset[i+1].append(size)
-
-                series_map[q.auto_series] = series_map.get(q.auto_series,0) + 1
-            series_list = []
-            for key in series_map.keys():
-                item = {}
-                item['name'] = key
-                item['value'] = series_map[key]
-                series_list.append(item)
-        except Exception as e:
-            print(e)
-        # 该展示哪些数据呢？
-        autohome_data['series_list'] = series_list
-        autohome_data['dataset'] = dataset
-        autohome_data['emotions'] = total_emotion
-        autohome_data['negpart'] = neg_part_data
-        autohome_data['pospart'] = pos_part_data
-        return JsonResponse(autohome_data)
-    else:
-        return {'error':'it is not a POST request!'}

@@ -4,19 +4,84 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
     <title>智能自动数据获取分析系统</title>
 </head>
 <body>
-    <h2>选择一种汽车</h2>
-    <form action="{% url 'crawler:scrawler' %}" method="post">
-        {% csrf_token %}
-        <select name="topic_tag" id="topic_tag">
-            <option value="#宝马" selected>宝马</option>
-            <option value="#奥迪">奥迪</option>
-            <option value="#奔驰">奔驰</option>
-        </select>
-        <p></p>
-        <input type="submit" value="提交">
-    </form>
+    <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
+        <ul class="navbar-nav">
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:weiboshow' %}">微博</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车之家</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="container" style="margin-top: 80px;">
+        <div class="card">
+            <div class="card-header bg-info text-white text-center">
+                <h4 class="card-title">智能自动数据获取分析系统</h4>
+                <p class="card-text">上海大学计算机工程与科学学院2017级智能科学与技术系<a class="card-link" href="https://github.com/rllll/InelligentAnalysis">刘文耀</a>毕业设计</p>
+            </div>
+            <div class="card-body">
+                <div class="container">
+                    <div class="row" style="margin-top: 40px;margin-bottom: 40px;">
+                        <div class="col-sm">
+                            <div class="card" style="height: 400px;">
+                                <div class="card-header bg-info text-white text-center">
+                                    微博数据分析
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">
+                                        此版块内容包含了微博数据爬取，以及宝马、奥迪、奔驰三种品牌的评论词云展示，以及展示排名前20的词汇直方图。
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <button type="button" id="weibo" class="btn btn-success btn-block">进入</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm">
+                            <div class="card" style="height: 400px;">
+                                <div class="card-header bg-info text-white text-center">
+                                    汽车之家数据分析
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">
+                                        此版块内容可以首先选择宝马、奥迪、奔驰三种品牌的一种或多种车系，进入下一页面后，用户可以看到情感词性、某一车系各大类别的详情口碑数据。除此之外，用户还可以选择某一车系，将其余与其他品牌的车系进行比较，更加直观的帮助用户选择。
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <button type="button" id="autohome" class="btn btn-success btn-block">进入</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#weibo').click(function(){
+            location.href = "{% url 'crawler:weiboshow' %}";
+        });
+        $('#autohome').click(function(){
+            location.href = "{% url 'crawler:autohome' %}";
+        });
+    </script>
+
 </body>
 </html>

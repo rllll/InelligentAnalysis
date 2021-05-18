@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    <style>
+        .myecharts{
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+    <title>品牌数据分析可视化</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'crawler:weiboshow' %}">微博</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车之家</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="container-fluid" style="margin-top: 80px;">
+        <div class="row" style="margin-top: 30px;">
+            <div class="col-sm text-center">
+                <h1>评价数据可视化</h1>
+            </div>
+        </div>
+        <div class="row" style="margin-top: 30px;">
+            <div class="col-sm-3">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        选择车系
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered m-auto">
+                            <tbody id="single">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 30px;">
+                    <div class="card-header bg-info text-white">
+                        可选功能
+                    </div>
+                    <div class="card-body">
+                        <button type="button" id="feelings" class="btn btn-block btn-outline-success">情感词性</button>
+                        <button type="button" id="bytag" class="btn btn-block btn-outline-success">类别分布</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="card">
+                    <div id="createautohome" class="card-body">
+                        <div id="autohomeshowarea" style="width: 100%;height: 500px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        选择类别
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered m-auto">
+                            <tbody id="category">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 30px;">
+                    <div class="card-header bg-info text-white">
+                        可选功能
+                    </div>
+                    <div class="card-body">
+                        <button type="button" id="lookdetails" class="btn btn-block btn-outline-success">类别详情</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function tableUpdate(data,selected){
+            var single = document.getElementById('single');
+            while(single.hasChildNodes()){
+                single.removeChild(single.firstChild);
+            }
+            var legends = [];
+            selected = selected.split(',');
+            for (var i = 0; i < selected.length; i++){
+                legends.push(data['leg'][selected[i]]);
+            }  
+            var total = legends.length;
+            var j = 0;
+            while (j < legends.length){
+                var it_tr = document.createElement('tr');
+                for (var i = 1; i <= Math.min(2,total); i++){
+                    var it_td = document.createElement('td');
+                    var it_radio = document.createElement('input');
+                    it_radio.setAttribute('type','radio');
+                    it_radio.setAttribute('value',legends[j]);
+                    it_radio.setAttribute('name','myradio');
+                    var txt_node = document.createTextNode(legends[j]);
+                    var it_label = document.createElement('label');
+                    it_label.appendChild(it_radio);
+                    it_label.appendChild(txt_node);
+                    var it_div = document.createElement('div');
+                    it_div.className = "radio";
+                    it_div.appendChild(it_label);
+                    it_td.appendChild(it_div);
+                    it_tr.appendChild(it_td);
+                    j++;
+                }
+                single.appendChild(it_tr);
+                total -= 2;
+            }
+        }
+
+        function curselect_single(){
+            var t_single = document.getElementById('single');
+            var alltd = t_single.getElementsByTagName('td');
+            for(var i = 0; i < alltd.length; i++){
+                var childnodes = alltd[i].childNodes[0].childNodes[0].childNodes;
+                var radioinput = childnodes[0];
+                if (radioinput.checked == true){
+                    return radioinput.defaultValue;
+                }
+            }
+        }
+
+        function curselect_category(){
+            var t_category = document.getElementById('category');
+            var alltd = t_category.getElementsByTagName('td');
+            for(var i = 0; i < alltd.length; i++){
+                var childnodes = alltd[i].childNodes[0].childNodes[0].childNodes;
+                var radioinput = childnodes[0];
+                if (radioinput.checked == true){
+                    return radioinput.defaultValue;
+                }
+            }
+        }
+
+        function getNewId(){
+            var create = document.getElementById('createautohome');
+            while(create.hasChildNodes()){
+                create.removeChild(create.firstChild);
+            }
+            var div = document.createElement('div');
+            div.setAttribute('id','autohomeshowarea');
+            div.className = 'myecharts';
+            create.appendChild(div);
+            return document.getElementById('autohomeshowarea');
+        }
+
+        function getTwoId(){
+            var create = document.getElementById('createautohome');
+            while(create.hasChildNodes()){
+                create.removeChild(create.firstChild);
+            }
+            var div1 = document.createElement('div');
+            div1.setAttribute('id','autohomeshowarea');
+            div1.className = 'myecharts';
+            var div2 = document.createElement('div');
+            div2.setAttribute('id','area2');
+            div2.className = 'myecharts';
+            create.appendChild(div1);
+            create.appendChild(div2);
+        }
+
+        function feelings(mydata){
+            if (mydata.length == 0){
+                return;
+            }
+            var select_series = curselect_single();
+            var myautohome = getNewId();
+            var mycharts = echarts.init(myautohome);
+            var option = {
+                title: {
+                    text: select_series + '情感词性',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                },
+                series: [
+                    {
+                        name: '词性判别',
+                        type: 'pie',
+                        radius: '50%',
+                        data: mydata,
+                        label: {
+                            formatter: '{b}: ({d}%)'
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }
+                ]
+            };
+
+            mycharts.setOption(option);
+        }
+        function bytag(mydata){
+            if (mydata.length == 0){
+                return;
+            }
+            var leg = [];
+            for (var i = 0; i < mydata.length; i++){
+                leg.push(mydata[i].name);
+            }
+            var select_series = curselect_single();
+            var myautohome = getNewId();
+            var mycharts = echarts.init(myautohome);
+            var option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: {c} ({d}%)'
+                },
+                legend: {
+                    data: leg,
+                    top:'30px'
+                },
+                title: {
+                    text: select_series + '类别分布',
+                    left: 'center'
+                },
+                series: [
+                    {
+                        name: '所属类别',
+                        type: 'pie',
+                        radius: ['30%', '60%'],
+                        labelLine: {
+                            length: 30,
+                        },
+                        top:'40px',
+                        label: {
+                            formatter: '{a|{a}}{abg|}\n{hr|}\n  {b|{b}：}{c}  {per|{d}%}  ',
+                            backgroundColor: '#F6F8FC',
+                            borderColor: '#8C8D8E',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            
+                            rich: {
+                                a: {
+                                    color: '#6E7079',
+                                    lineHeight: 22,
+                                    align: 'center'
+                                },
+                                hr: {
+                                    borderColor: '#8C8D8E',
+                                    width: '100%',
+                                    borderWidth: 1,
+                                    height: 0
+                                },
+                                b: {
+                                    color: '#4C5058',
+                                    fontSize: 14,
+                                    fontWeight: 'bold',
+                                    lineHeight: 33
+                                },
+                                per: {
+                                    color: '#fff',
+                                    backgroundColor: '#4C5058',
+                                    padding: [3, 4],
+                                    borderRadius: 4
+                                }
+                            }
+                        },
+                        data: mydata
+                    }
+                ]
+            };
+            mycharts.setOption(option);
+        }
+        function MyAjax(select_series,func){
+            $.ajax({
+                url: "/crawler/handleahshow/",
+                type:"POST",
+                data: {
+                    'select_series':select_series,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    if (func == 'feelings')
+                        feelings(data['feelings']);
+                    else if (func == 'bytag')
+                        bytag(data['bytag']);
+                }
+            });
+        }
+        function updateEcharts_single(func){
+            var select_series = curselect_single();
+            MyAjax(select_series,func);
+        }
+        $('#feelings').click(function(){
+            updateEcharts_single('feelings');
+        });
+        $('#bytag').click(function(){
+            updateEcharts_single('bytag');
+        });
+
+        function lookdetails(mydata,area2data){
+            if (mydata.length == 0){
+                return;
+            }
+            var select_series = curselect_single();
+            var select_category = curselect_category();
+            getTwoId();
+            var myautohome = document.getElementById('autohomeshowarea');
+            var mycharts = echarts.init(myautohome);
+            var option = {
+                title: {
+                    text: select_series + '[' + select_category + ']标签分布情况',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                legend: {
+                    left: 'left',
+                    top:'30px'
+                },
+                series: [
+                    {
+                        name: '所属标签',
+                        type: 'pie',
+                        radius: '50%',
+                        data: mydata,
+                        label: {
+                            formatter: '{b}: ({d}%)'
+                        },
+                        top:'20px',
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }
+                ]
+            };
+            mycharts.setOption(option);
+
+            var area2 = document.getElementById('area2');
+            var mycharts_0 = echarts.init(area2);
+            var option_0 = {
+                title: {
+                    text: select_series + '[' + select_category + ']情感词性',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    top:'30px'
+                },
+                series: [
+                    {
+                        name: '词性判别',
+                        type: 'pie',
+                        radius: '50%',
+                        data: area2data,
+                        label: {
+                            formatter: '{b}: ({d}%)'
+                        },
+                        top:'20px',
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }
+                ]
+            };
+            mycharts_0.setOption(option_0);
+        }
+
+        function cateAjax(select_series,select_category){
+            $.ajax({
+                url: "/crawler/handlecategory/",
+                type:"POST",
+                data: {
+                    'select_series':select_series,
+                    'select_category':select_category,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    console.log(data);
+                    lookdetails(data['rescategory'],data['resfeelings']);
+                }
+            });
+        }
+
+        function updateEcharts_category(){
+            var select_series = curselect_single();
+            var select_category = curselect_category();
+            cateAjax(select_series,select_category);
+        }
+
+        $('#lookdetails').click(function(){
+            updateEcharts_category();
+        });
+
+        function updateCategory(){
+            var category = document.getElementById('category');
+            while(category.hasChildNodes()){
+                category.removeChild(category.firstChild);
+            }
+            var dd = ['空间','动力','操控','油耗','舒适性','外观','内饰','性价比'];
+            var total = dd.length;
+            var j = 0;
+            while(j < dd.length){
+                var it_tr = document.createElement('tr');
+                for (var i = 1; i <= Math.min(2,total); i++){
+                    var it_td = document.createElement('td');
+                    var it_radio = document.createElement('input');
+                    it_radio.setAttribute('type','radio');
+                    it_radio.setAttribute('value',dd[j]);
+                    it_radio.setAttribute('name','myradio_0');
+                    var txt_node = document.createTextNode(dd[j]);
+                    var it_label = document.createElement('label');
+                    it_label.appendChild(it_radio);
+                    it_label.appendChild(txt_node);
+                    var it_div = document.createElement('div');
+                    it_div.className = "radio";
+                    it_div.appendChild(it_label);
+                    it_td.appendChild(it_div);
+                    it_tr.appendChild(it_td);
+                    j++;
+                }
+                category.appendChild(it_tr);
+                total -= 2;
+            }
+        }
+        
+        window.onload = function(){
+            var brand = localStorage.brand;
+            var selected = localStorage.selected;
+            $.ajax({
+                url: "/crawler/getlegend/",
+                type:"POST",
+                data: {
+                    'curbrand':brand,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    tableUpdate(data,selected);
+                }
+            });
+            updateCategory();
+        };
+    </script>
+</body>
+</html>
