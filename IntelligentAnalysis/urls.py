@@ -15,8 +15,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.conf import settings
+from django.conf.urls import url
+from django.views.static import serve
 
 urlpatterns = [
     path('crawler/', include('crawler.urls')),
     path('admin/', admin.site.urls),
 ]
+
+# DEBUG为Fasle时执行
+if not settings.DEBUG:
+    urlpatterns += [url(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT})]
