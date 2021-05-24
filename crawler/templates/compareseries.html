@@ -13,19 +13,25 @@
     <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
     <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script src="https://cdn.staticfile.org/echarts/5.0.1/echarts.min.js"></script>
+    <style>
+        .echarts_height{
+            width: 100%;
+            height: 300px;
+        }
+    </style>
     <title>比较车系可视化分析</title>
 </head>
 <body>
     <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
         <ul class="navbar-nav">
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'crawler:weiboshow' %}">社交媒体分析</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车媒体分析</a>
+                <a class="nav-link active" href="{% url 'crawler:autohome' %}">汽车媒体分析</a>
             </li>
         </ul>
     </nav>
@@ -56,13 +62,56 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm-7">
-
+            <div class="col-sm-8">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col">
+                            <div class="card" style="height: 900px;overflow-y: auto;">
+                                <div class="card-header text-center bg-secondary text-white">
+                                    被比较
+                                </div>
+                                <div class="card-body">
+                                    <div id="echarts_becompared" class="container-fluid">
+                                        <!--
+                                            由js代码动态生成，控制每个row中有两个col-sm
+                                            id设置为逐项加1，方便循环利用
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="card" style="height: 900px;overflow-y: auto;">
+                                <div class="card-header text-center bg-secondary text-white">
+                                    比较
+                                </div>
+                                <div class="card-body">
+                                    <div id="echarts_compareto" class="container-fluid">
+                                        <!--
+                                            由js代码动态生成，控制每个row中有两个col-sm
+                                            id设置为逐项加1，方便循环利用
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-sm-2">
+            <div class="col-sm-1">
                 <div class="card">
                     <div class="card-body">
-                        <button type="button" id="comparebyfeelings" class="btn btn-block btn-outline-success">正负比较</button>
+                        <button type="button" id="comparebyfeelings" class="btn btn-block btn-outline-success">正负</button>
+                        <button type="button" id="comparebyspace" class="btn btn-block btn-outline-success">空间</button>
+                        <button type="button" id="comparebypower" class="btn btn-block btn-outline-success">动力</button>
+                        <button type="button" id="comparebycontrol" class="btn btn-block btn-outline-success">操控</button>
+                        <button type="button" id="comparebyori" class="btn btn-block btn-outline-success">油耗</button>
+                        <button type="button" id="comparebycomfort" class="btn btn-block btn-outline-success">舒适性</button>
+                        <button type="button" id="comparebyappearance" class="btn btn-block btn-outline-success">外观</button>
+                        <button type="button" id="comparebytrim" class="btn btn-block btn-outline-success">内饰</button>
+                        <button type="button" id="comparebycost" class="btn btn-block btn-outline-success">性价比</button>
                     </div>
                 </div>
             </div>
@@ -70,6 +119,191 @@
     </div>
 
     <script>
+
+        function getBeComparedList(){
+            var becompared = document.getElementById('becompared');
+            var alltd = becompared.getElementsByTagName('td');
+            var becomparedList = [];
+            for (var i = 0; i < alltd.length; i++){
+                var input_check = alltd[i].childNodes[0].childNodes[0].childNodes[0];
+                if (input_check.checked == true){
+                    becomparedList.push(input_check.defaultValue);
+                }
+            }
+            //console.log(becomparedList);
+            return becomparedList;
+        }
+
+        function getCompareToList(){
+            var compareto = document.getElementById('compareto');
+            var alltd = compareto.getElementsByTagName('td');
+            var comparetoList = [];
+            for (var i = 0; i < alltd.length; i++){
+                var input_check = alltd[i].childNodes[0].childNodes[0].childNodes[0];
+                if (input_check.checked == true){
+                    comparetoList.push(input_check.defaultValue);
+                }
+            }
+            //console.log(comparetoList);
+            return comparetoList;
+        }
+
+        function echartsFeelings(ids,mydata,type){
+            for (var i = 0; i < ids.length; i++){
+                var curdata = mydata[i];
+                console.log(curdata);
+                var mychart = echarts.init(document.getElementById(ids[i]));
+                var sbt = type;
+                if (type == 'feelings'){
+                    sbt = "正负面"
+                }
+                var option = {
+                    title: {
+                        text: curdata['series'],
+                        subtext: sbt,
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item'
+                    },
+                    legend: {
+                        left: 'center',
+                        top:'50px'
+                    },
+                    series: [
+                        {
+                            name:sbt,
+                            type: 'pie',
+                            radius: '50%',
+                            data: curdata['data'],
+                            label: {
+                                formatter: '{b}: ({d}%)'
+                            },
+                            top:'80px',
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                };
+                mychart.setOption(option);
+            }
+        }
+
+        function updateByParams(element_id,id_pre,mydata,type){
+            var element = document.getElementById(element_id);
+            while(element.hasChildNodes()){
+                element.removeChild(element.firstChild);
+            }
+            var cols = [];
+            var series_ids = [];
+            for (var i = 0; i < mydata.length; i++){
+                var col = document.createElement('div');
+                col.className = 'col';
+                var div = document.createElement('div');
+                var curid =  id_pre + '_series_'+String(i);
+                div.setAttribute('id',curid);
+                div.className = 'echarts_height';
+                series_ids.push(curid);
+                col.appendChild(div);
+                cols.push(col);
+            }
+            var remain = cols.length;
+            var i = 0;
+            var rows = [];
+            while(i < cols.length){
+                var row = document.createElement('div');
+                row.className = "row";
+                for (var j = 0; j < Math.min(1,remain); j++){
+                    row.appendChild(cols[i]);
+                    i++;
+                }
+                rows.push(row);
+                remain -= 1;
+            }
+            for (var m = 0; m < rows.length; m++){
+                element.appendChild(rows[m]);
+            }
+            echartsFeelings(series_ids,mydata,type);
+        }
+
+        function updateFeelings(mydata){
+            updateByParams('echarts_becompared','eb',mydata['resbecomparedlist'],'feelings');
+            updateByParams('echarts_compareto','ec',mydata['rescomparetolist'],'feelings');
+        }
+
+        function updateByCategory(type,mydata){
+            updateByParams('echarts_becompared','mm',mydata['resbecomparedlist'],type);
+            updateByParams('echarts_compareto','mn',mydata['rescomparetolist'],type);
+        }
+
+        function echartsUpdate(mydata){
+            if (mydata['type'] == 'feelings'){
+                updateFeelings(mydata['data']);
+            }else{
+                updateByCategory(mydata['type'],mydata['data']);
+            }
+        }
+
+        function AjaxByType(type){
+            var becomparedlist = getBeComparedList();
+            if (becomparedlist.length == 0){
+                alert("被选择车系未选！");
+                return;
+            }
+            var comparetolist = getCompareToList();
+            if (comparetolist.length == 0){
+                alert("未选择车系！");
+                return;
+            }
+            $.ajax({
+                url: "/crawler/handlecompareto/",
+                type:"POST",
+                data: {
+                    'type':type,
+                    'becomparedlist':becomparedlist,
+                    'comparetolist':comparetolist,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    echartsUpdate(data);
+                    //console.log(data);
+                }
+            });
+        }
+
+        $('#comparebyfeelings').click(function(){
+            AjaxByType('feelings');
+        });
+        $('#comparebyspace').click(function(){
+            AjaxByType('空间');
+        });
+        $('#comparebypower').click(function(){
+            AjaxByType('动力');
+        });
+        $('#comparebycontrol').click(function(){
+            AjaxByType('操控');
+        });
+        $('#comparebyori').click(function(){
+            AjaxByType('油耗');
+        });
+        $('#comparebycomfort').click(function(){
+            AjaxByType('舒适性');
+        });
+        $('#comparebyappearance').click(function(){
+            AjaxByType('外观');
+        });
+        $('#comparebytrim').click(function(){
+            AjaxByType('内饰');
+        });
+        $('#comparebycost').click(function(){
+            AjaxByType('性价比');
+        });
+
         function tableUpdate(data,selected){
             var becompared = document.getElementById('becompared');
             while(becompared.hasChildNodes()){

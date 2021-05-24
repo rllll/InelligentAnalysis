@@ -17,10 +17,11 @@ urlpatterns = [
     path('handleahshow/',views.handleahshow,name='handleahshow'),
     path('handlecategory/',views.handlecategory,name='handlecategory'),
     path('showgetdata/',views.showgetdata,name='showgetdata'),
+    path('handlecompareto/',views.handlecompareto,name='handlecompareto'),
+    path('delete/',views.deleteautohome, name="delete"),
+    path('autohomedata/',views.autohomedata, name="autohomedata"),
 
     # path('startcrawler/',views.startcrawler, name="scrawler"),
-    # path('autohome/',views.autohomedata, name="autohome"),
-    # path('delete/',views.deleteautohome, name="delete"),
     # path('show/',views.show, name='show'),
     # path('toptopic/',views.toptopic,name='toptopic'),
     # path('echarts/',views.echarts,name='echarts'),

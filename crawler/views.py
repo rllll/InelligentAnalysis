@@ -115,10 +115,19 @@ def getlegend(request):
         resdata = {'leg':leg}
         return JsonResponse(resdata)
 
+def getallbrands():
+    allbrands = []
+    q_set = AutohomeData.objects.all()
+    for q in q_set:
+        if q.auto_brand in allbrands:
+            continue
+        allbrands.append(q.auto_brand)
+    return allbrands
+
 def compareto(request):
     if request.method == "POST":
         responsedata = {}
-        allbrands = ['宝马','奥迪','奔驰']
+        allbrands = ['宝马','奥迪','奔驰','特斯拉','大众','蔚来','小鹏汽车']
         brand = request.POST['curbrand']
         responsedata['all'] = []
         for b in allbrands:
@@ -129,6 +138,90 @@ def compareto(request):
                 item['leg'] = leg
                 responsedata['all'].append(item)
         return JsonResponse(responsedata)
+
+def comparegetfeelingsdatabyseries(series):
+    resdata = []
+    try:
+        q_set = AutohomeData.objects.filter(auto_series=series)
+        datajson = {}
+        for q in q_set:
+            if q.auto_evaluate == '1':
+                datajson['pos'] = datajson.get('pos',0) + 1
+            elif q.auto_evaluate == '0':
+                datajson['neg'] = datajson.get('neg',0) + 1
+        for j in datajson:
+            item = {}
+            if j == 'pos':
+                item['name'] = '积极'
+            else:
+                item['name'] = '消极'
+            item['value'] = datajson.get(j,0)
+            resdata.append(item)
+    except Exception as e:
+        print(e)
+    return resdata
+
+def comparefeelings(becomparedlist,comparetolist):
+    responsedata = {}
+    responsedata['resbecomparedlist'] = []
+    responsedata['rescomparetolist'] = []
+    for b in becomparedlist:
+        item = {}
+        item['series'] = b
+        item['data'] = comparegetfeelingsdatabyseries(b)
+        responsedata['resbecomparedlist'].append(item)
+    for c in comparetolist:
+        item = {}
+        item['series'] = c
+        item['data'] = comparegetfeelingsdatabyseries(c)
+        responsedata['rescomparetolist'].append(item)
+    return responsedata
+
+def comparegetdata(series,category):
+    resdata = []
+    try:
+        q_set = AutohomeData.objects.filter(auto_series=series,auto_category=category)
+        cnt = {}
+        for q in q_set:
+            cnt[q.auto_tag] = cnt.get(q.auto_tag,0) + 1
+        for i in cnt:
+            item = {}
+            item['name'] = i
+            item['value'] = cnt.get(i,0)
+            resdata.append(item)
+    except Exception as e:
+        print(e)
+    return resdata
+
+def comparebycategory(becomparedlist,comparetolist,category):
+    responsedata = {}
+    responsedata['resbecomparedlist'] = []
+    responsedata['rescomparetolist'] = []
+    for b in becomparedlist:
+        item = {}
+        item['series'] = b
+        item['data'] = comparegetdata(b,category)
+        responsedata['resbecomparedlist'].append(item)
+    for c in comparetolist:
+        item = {}
+        item['series'] = c
+        item['data'] = comparegetdata(c,category)
+        responsedata['rescomparetolist'].append(item)
+    return responsedata
+
+def handlecompareto(request):
+    if request.method == "POST":
+        tp = request.POST['type']
+        becomparedlist = request.POST.getlist('becomparedlist[]')
+        comparetolist = request.POST.getlist('comparetolist[]')
+        allresponse = {}
+        if tp == 'feelings':
+            allresponse['type'] = tp
+            allresponse['data'] = comparefeelings(becomparedlist,comparetolist)
+        else:
+            allresponse['type'] = tp
+            allresponse['data'] = comparebycategory(becomparedlist,comparetolist,tp)
+        return JsonResponse(allresponse)
 
 def startcrawler(request):
     topic_tag = request.POST['topic_tag']
@@ -163,33 +256,42 @@ def deleteautohome(request):
     """
     删除汽车之家所有数据
     """
-    q = AutohomeData.objects.all().delete()
-    return HttpResponse("successfully!")
+    if request.method == 'POST':
+        resdata = {}
+        resdata['ok'] = 0
+        try:
+            q = AutohomeData.objects.all().delete()
+            resdata['ok'] = 1
+            print('success!')
+        except Exception as e:
+            resdata['ok'] = 0
+        return JsonResponse(resdata)
 
 def autohomedata(request):
     """
     将汽车之家数据存入数据库
     """
-    cwd = os.getcwd()+'/data/'
-    for brand in os.listdir(cwd):
-        cur_path = cwd+brand+'/'
-        for txt in os.listdir(cur_path):
-            f = open(cur_path+txt,'r',encoding='utf-8')
-            for line in f.readlines():
-                line = line.strip('\n')
-                s_list = line.split(';')
-                if len(s_list) < 5:
-                    continue
-                q = AutohomeData()
-                q.auto_brand = brand
-                q.auto_series = s_list[0]
-                q.auto_category = s_list[1]
-                q.auto_tag = s_list[2]
-                q.auto_evaluate = s_list[3]
-                q.auto_text = s_list[4]
-                print('[正在存储...]'+brand+"("+s_list[0]+")"+"("+s_list[1]+")")
-                q.save()
-    return HttpResponse('successfully!')
+    if request.method == 'POST':
+        cwd = os.getcwd()+'/data/'
+        for brand in os.listdir(cwd):
+            cur_path = cwd+brand+'/'
+            for txt in os.listdir(cur_path):
+                f = open(cur_path+txt,'r',encoding='utf-8')
+                for line in f.readlines():
+                    line = line.strip('\n')
+                    s_list = line.split(';')
+                    if len(s_list) < 5:
+                        continue
+                    q = AutohomeData()
+                    q.auto_brand = brand
+                    q.auto_series = s_list[0]
+                    q.auto_category = s_list[1]
+                    q.auto_tag = s_list[2]
+                    q.auto_evaluate = s_list[3]
+                    q.auto_text = s_list[4]
+                    print('[正在存储...]'+brand+"("+s_list[0]+")"+"("+s_list[1]+")")
+                    q.save()
+        return JsonResponse({'ok':1})
 
 def get_data(tag):
     """

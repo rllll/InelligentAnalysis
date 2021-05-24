@@ -24,14 +24,14 @@
 <body>
     <nav class="navbar navbar-expand-sm bg-info navbar-dark fixed-top">
         <ul class="navbar-nav">
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="{% url 'crawler:index' %}">首页</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'crawler:weiboshow' %}">社交媒体分析</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'crawler:autohome' %}">汽车媒体分析</a>
+                <a class="nav-link active" href="{% url 'crawler:autohome' %}">汽车媒体分析</a>
             </li>
         </ul>
     </nav>
@@ -61,6 +61,7 @@
                     <div class="card-body">
                         <button type="button" id="feelings" class="btn btn-block btn-outline-success">情感词性</button>
                         <button type="button" id="bytag" class="btn btn-block btn-outline-success">类别分布</button>
+                        <button type="button" id="seriescompare" class="btn btn-block btn-outline-success">车系比较</button>
                     </div>
                 </div>
             </div>
@@ -322,7 +323,13 @@
         $('#bytag').click(function(){
             updateEcharts_single('bytag');
         });
-
+        $('#seriescompare').click(function(){
+            if (window.localStorage){
+                location.href = "/crawler/compare/";
+            }else{
+                alert("当前浏览器不支持localStorage，请更换浏览器！");
+            }
+        });
         function lookdetails(mydata,area2data){
             if (mydata.length == 0){
                 return;
