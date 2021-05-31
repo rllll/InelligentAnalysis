@@ -45,8 +45,10 @@
                                     <p class="text-info" style="font-size: 18px; margin-top: 5px;">当前选择：<span class="text-danger font-weight-bold" id="curselect"></span></p>
                                 </div>
                                 <div class="col-sm-8 text-right">
+                                    <!--
                                     <button type="button" id="clear_all" class="btn btn-outline-danger">清空数据</button>
                                     <button type="button" id="init_all" class="btn btn-outline-success">导入数据</button>
+                                    -->
                                 </div>
                             </div>
                         </div>
@@ -254,6 +256,12 @@
                 alert("当前浏览器不支持localStorage，请更换浏览器！");
             }
         });
+
+        window.onload = function(){
+            updateTable("宝马");
+            var curselect = document.getElementById('curselect');
+            curselect.innerHTML = "宝马";
+        }
     </script>
 
 </body>

@@ -224,33 +224,38 @@ def handlecompareto(request):
         return JsonResponse(allresponse)
 
 def startcrawler(request):
-    topic_tag = request.POST['topic_tag']
-    wb = crawler.WeiboAuto.WeiboAuto()
-    wb.start(topic_tag)
-    weibos = wb.get_weibos()
-    for w in weibos:
-        try:
-            q = TopicComment.objects.get(tc_weibo_id=w['id'])
-        except TopicComment.DoesNotExist:
-            q = TopicComment()
-            q.tc_tag = topic_tag
-            q.tc_user_id = w['user_id']
-            q.tc_screen_name = w['screen_name']
-            q.tc_weibo_id = w['id']
-            q.tc_text = w['text']
-            q.tc_location = w['location']
-            q.tc_created_at = datetime.strptime(w['created_at'],"%Y-%m-%d")
-            q.tc_source = w['source']
-            q.tc_attitudes_count = w['attitudes_count']
-            q.tc_comments_count = w['comments_count']
-            q.tc_reposts_count = w['reposts_count']
-            q.tc_topics = w['topics']
-            q.tc_at_users = w.get('at_users','')
-            q.save()
-    context = {
-        'topic_tag':topic_tag
-    }
-    return render(request,'show.html',context)
+    if request.method == 'POST':
+        resdata = {}
+        resdata['ok'] = 1
+        topic_tag = request.POST['topic_tag']
+        wb = crawler.WeiboAuto.WeiboAuto()
+        wb.start(topic_tag)
+        weibos = wb.get_weibos()
+        for w in weibos:
+            try:
+                q = TopicComment.objects.get(tc_weibo_id=w['id'])
+                q.tc_screen_name = w['screen_name']
+                q.tc_text = w['text']
+                q.tc_attitudes_count = w['attitudes_count']
+                q.tc_comments_count = w['comments_count']
+                q.tc_reposts_count = w['reposts_count']
+            except TopicComment.DoesNotExist:
+                q = TopicComment()
+                q.tc_tag = topic_tag
+                q.tc_user_id = w['user_id']
+                q.tc_screen_name = w['screen_name']
+                q.tc_weibo_id = w['id']
+                q.tc_text = w['text']
+                q.tc_location = w['location']
+                q.tc_created_at = datetime.strptime(w['created_at'],"%Y-%m-%d")
+                q.tc_source = w['source']
+                q.tc_attitudes_count = w['attitudes_count']
+                q.tc_comments_count = w['comments_count']
+                q.tc_reposts_count = w['reposts_count']
+                q.tc_topics = w['topics']
+                q.tc_at_users = w.get('at_users','')
+                q.save()        
+        return JsonResponse(resdata)
 
 def deleteautohome(request):
     """
@@ -331,6 +336,32 @@ def get_data(tag):
         response['error_msg'] = e
     return response
 
+def getLatest(curbrand):
+    latestText = []
+    try:
+        q_set = TopicComment.objects.filter(tc_tag=curbrand).order_by('-tc_created_at')[:10]
+        for q in q_set:
+            item = {}
+            item['date'] = q.tc_created_at
+            item['text'] = q.tc_text
+            latestText.append(item)
+    except Exception as e:
+        print(e)
+    return latestText
+
+def getLike(curbrand):
+    latestText = []
+    try:
+        q_set = TopicComment.objects.filter(tc_tag=curbrand).order_by('-tc_attitudes_count')[:10]
+        for q in q_set:
+            item = {}
+            item['count'] = q.tc_attitudes_count
+            item['text'] = q.tc_text
+            latestText.append(item)
+    except Exception as e:
+        print(e)
+    return latestText
+
 def weiboshow(request):
     """
     获取三种车系的词云数据，总体页面
@@ -339,69 +370,18 @@ def weiboshow(request):
         cur_brand = request.POST['curbrand']
         cur_brand = '#' + cur_brand
         res = get_data(cur_brand)
-        return JsonResponse(res)
+        alldata = {}
+        alldata['wordcloud'] = res
+        alldata['latest'] = getLatest(cur_brand)
+        alldata['like'] = getLike(cur_brand)
+        return JsonResponse(alldata)
     else:
         return render(request,'weiboshow.html',csrf(request))
-
-def feelingdata(tag):
-    """
-    利用snownlp分析词汇的正负面，返回积极词汇和消极词汇
-    """
-    response = {
-        'success':1,
-        'pos_data':[],
-        'neg_data':[]
-    }
-    try:
-        query_set = TopicComment.objects.filter(tc_tag=tag)
-        text_list = []
-        for q in query_set:
-            cur_list = jieba.lcut(q.tc_text)
-            text_list += cur_list
-        cwd = os.getcwd()+'/crawler/'
-        stp_words_set = {line.strip() for line in open(cwd + 'cn_stopwords.txt',encoding='utf-8')}
-        positive_list = []
-        negative_list = []
-        for text in text_list:
-            text_strip = text.strip()
-            if text_strip in stp_words_set:
-                continue
-            if len(text_strip) == 0:
-                continue
-            each_word = snownlp.SnowNLP(text)
-            feeling = each_word.sentiments
-            if feeling >= 0.9:
-                positive_list.append(text_strip)
-            elif feeling < 0.1:
-                negative_list.append(text_strip)
-        positive_count = {}
-        for t in positive_list:
-            positive_count[t] = positive_count.get(t,0)+1
-        positive_data_list = sorted(positive_count.items(), key= lambda x : x[1], reverse=True)
-        for x in positive_data_list[0:20]:
-            item = {}
-            item['name'] = x[0]
-            item['value'] = x[1]
-            response['pos_data'].append(item)
-        negative_count = {}
-        for t in negative_list:
-            negative_count[t] = negative_count.get(t,0)+1
-        negative_data_list = sorted(negative_count.items(), key= lambda x : x[1], reverse=True)
-        for x in negative_data_list[0:20]:
-            item = {}
-            item['name'] = x[0]
-            item['value'] = x[1]
-            response['neg_data'].append(item)
-    except Exception as e:
-        response['success'] = 0
-        response['error_msg'] = e
-    return response
 
 def showgetdata(request):
     """
     根据不同的tag（宝马，奥迪，奔驰）获取相应的数据
     item1代表所有词汇，用于词云展示
-    item2区别了词汇情感正负面，用于展示
     """
     if request.method == 'POST':
         tag = request.POST['tag']
@@ -420,12 +400,4 @@ def showgetdata(request):
             all_response['item1']['data'] = data
         else:
             all_response['item1']['success'] = 0
-        feel_data = feelingdata(tag)
-        all_response['item2'] = {}
-        if feel_data['success'] == 1:
-            all_response['item2']['success'] = 1
-            all_response['item2']['pos_data'] = feel_data['pos_data']
-            all_response['item2']['neg_data'] = feel_data['neg_data']
-        else:
-            all_response['item2']['success'] = 0
         return JsonResponse(all_response)

@@ -20,8 +20,8 @@ urlpatterns = [
     path('handlecompareto/',views.handlecompareto,name='handlecompareto'),
     path('delete/',views.deleteautohome, name="delete"),
     path('autohomedata/',views.autohomedata, name="autohomedata"),
+    path('startcrawler/',views.startcrawler, name="scrawler"),
 
-    # path('startcrawler/',views.startcrawler, name="scrawler"),
     # path('show/',views.show, name='show'),
     # path('toptopic/',views.toptopic,name='toptopic'),
     # path('echarts/',views.echarts,name='echarts'),

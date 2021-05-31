@@ -16,6 +16,12 @@
     {% load static %}
     <script src="{% static 'js/echarts-wordcloud.js' %}"></script>
     <script src="{% static 'js/echarts-wordcloud.min.js' %}"></script>
+    <style>
+        .echartscube{
+            width: 100%;
+            height: 720px;
+        }
+    </style>
     <title>微博数据可视化</title>
 </head>
 <body>
@@ -38,7 +44,21 @@
                 <h1>社交媒体分析</h1>
             </div>
         </div>
-        <div class="row text-center" style="margin-top: 20px;">
+        <div class="row" style="margin-top: 30px;">
+            <div class="col-sm text-center">
+                爬虫模块：
+            </div>
+            <div class="col-sm">
+                <button type="button" id="btn_update_b1" style="width: 90%;" class="btn btn-outline-success">更新宝马</button>
+            </div>
+            <div class="col-sm">
+                <button type="button" id="btn_update_b2" style="width: 90%;" class="btn btn-outline-success">更新奥迪</button>
+            </div>
+            <div class="col-sm">
+                <button type="button" id="btn_update_b3" style="width: 90%;" class="btn btn-outline-success">更新奔驰</button>
+            </div>
+        </div>
+        <div class="row text-center" style="margin-top: 30px;">
             <div class="col-sm">
                 <button type="button" id="brand1" style="width: 80%;" class="btn btn-outline-info">宝马</button>
             </div>
@@ -50,25 +70,45 @@
             </div>
         </div>
         <div class="row" style="margin-top: 30px;">
-            <div class="col-sm text-center">
-                <div id="wordcloud" style="width: 100%;height: 720px;"></div>
+            <div class="col-sm-2">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        功能列表
+                    </div>
+                    <div class="card-body">
+                        <button type="button" id="btn_wordcloud" style="width: 90%;" class="btn btn-outline-success">词云</button>
+                        <br/>
+                        <button type="button" id="btn_histogram" style="width: 90%;" class="btn btn-outline-success">直方图</button>
+                        <button type="button" id="btn_latest" style="width: 90%;" class="btn btn-outline-success">最近10条</button>
+                        <button type="button" id="btn_like" style="width: 90%;" class="btn btn-outline-success">点赞10条</button>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="row" style="margin-top: 20px;">
-            <div id="sortComment" style="width: 100%;height: 600px;"></div>
-        </div>
-        <div class="row" style="margin-top: 20px">
-            <div class="col-sm">
-                <div id="item2_pos" style="width: 100%;height: 800px;"></div>
-            </div>
-            <div class="col-sm">
-                <div id="item2_neg" style="width: 100%;height: 800px;"></div>
+            <div class="col-sm-10 text-center">
+                <div id="display_area"></div>
             </div>
         </div>
     </div>
     <script>
 
+        function clearElement(){
+            var display = document.getElementById('display_area');
+            while(display.hasChildNodes()){
+                display.removeChild(display.firstChild);
+            }
+        }
+
+        function createElementById(e_id){
+            var display = document.getElementById('display_area');
+            var div = document.createElement('div');
+            div.setAttribute('id',e_id);
+            div.className = 'echartscube';
+            display.appendChild(div);
+        }
+
         function WordCloud(wcdata){
+            clearElement();
+            createElementById('wordcloud');
             var mychart = echarts.init(document.getElementById('wordcloud'));
             if (wcdata['success'] == 1){
                 var option = {
@@ -123,10 +163,12 @@
         }
         
         function item1(data){
+            clearElement();
+            createElementById('sortComment');
             var myChart = echarts.init(document.getElementById('sortComment'));
             var mydata = [];
-            if (data['item1']['success'] == 1){
-                mydata = data['item1']['data'];
+            if (data['success'] == 1){
+                mydata = data['data'];
             }
             var option = {
                 tooltip:{
@@ -167,62 +209,6 @@
             };
             myChart.setOption(option);
         }
-        /*function item2(data){
-            var titles = ["积极情绪","消极情绪"];
-            var en_id = ["pos","neg"];
-            for (var i = 0; i < titles.length; i++){
-                var curdata = [];
-                if (data['item2']['success'] == 1){
-                    if (i == 0){
-                        curdata = data['item2']['pos_data'];
-                    }else{
-                        curdata = data['item2']['neg_data'];
-                    }
-                }
-                var leg = [];
-                for (var j = 0; j < curdata.length; j++){
-                    leg.push(curdata[j].name);
-                }
-                var myChart = echarts.init(document.getElementById("item2_"+en_id[i]));
-                var option = {
-                    title: {
-                        text: titles[i]+'词汇统计',
-                        subtext: '基于微博评论',
-                        left: 'center'
-                    },
-                    tooltip: {
-                        trigger: 'item',
-                    },
-                    legend: {
-                        type: 'scroll',
-                        orient: 'vertical',
-                        right: 10,
-                        top: 20,
-                        bottom: 20,
-                        data: leg,
-                        selected: data.selected
-                    },
-                    series: [
-                        {
-                            name: '情绪词汇',
-                            type: 'pie',
-                            radius: '55%',
-                            center: ['40%', '50%'],
-                            data: curdata,
-                            emphasis: {
-                                itemStyle: {
-                                    shadowBlur: 10,
-                                    shadowOffsetX: 0,
-                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
-                                }
-                            }
-                        }
-                    ]
-                };
-                myChart.setOption(option);
-            }
-        }
-        */
         
         function myajax(cur_brand){
             $.ajax({
@@ -233,7 +219,8 @@
                     'csrfmiddlewaretoken': '{{ csrf_token }}'
                 },
                 success: function (data) {
-                    WordCloud(data);
+                    WordCloud(data['wordcloud']);
+                    storewordclouddata(data);
                 }
             });
             $.ajax({
@@ -244,9 +231,7 @@
                     'csrfmiddlewaretoken': '{{ csrf_token }}'
                 },
                 success: function (data) {
-                    item1(data);
-                    //item2(data);
-                    console.log(data);
+                    storeItemData(data);
                 }
             });
         }
@@ -262,6 +247,103 @@
         $('#brand3').click(function(){
             myajax("奔驰");
         });
+
+        function crawlerData(tag){
+            $.ajax({
+                url: "/crawler/startcrawler/",
+                type:"POST",
+                data: {
+                    'topic_tag':tag,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    if(data['ok'] == 1){
+                        alert("数据爬取或更新完毕！");
+                    }
+                }
+            });
+        }
+
+        $('#btn_update_b1').click(function(){
+            crawlerData('#宝马');
+        });
+        $('#btn_update_b2').click(function(){
+            crawlerData('#奥迪');
+        });
+        $('#btn_update_b3').click(function(){
+            crawlerData('#奔驰');
+        });
+
+        function storewordclouddata(data){
+            wordcloud_data = data['wordcloud'];
+            latest_data = data['latest'];
+            like_data = data['like'];
+        }
+
+        function storeItemData(data){
+            item1data = data['item1'];
+        }
+
+        $('#btn_wordcloud').click(function(){
+            WordCloud(wordcloud_data);
+        });
+
+        $('#btn_histogram').click(function(){
+            item1(item1data);
+        });
+
+        function displayLatest(mydata){
+            clearElement();
+            var display = document.getElementById('display_area');
+            var ul = document.createElement('ul');
+            ul.className = 'list-group';
+            for (var i = 0; i < mydata.length; i++){
+                var li = document.createElement('li');
+                li.className = 'list-group-item';
+                var datestr = '[日期：' + mydata[i].date + ']';
+                var p1 = document.createElement('p');
+                p1.append(document.createTextNode(datestr));
+                li.append(p1);
+                var textstr = mydata[i].text;
+                var p2 = document.createElement('p');
+                p2.className = 'text-left';
+                p2.append(document.createTextNode(textstr));
+                li.append(p2);
+                ul.append(li);
+            }
+            display.append(ul);
+        }
+        $('#btn_latest').click(function(){
+            displayLatest(latest_data);
+        });
+        function displayLike(mydata){
+            clearElement();
+            var display = document.getElementById('display_area');
+            var ul = document.createElement('ul');
+            ul.className = 'list-group';
+            for (var i = 0; i < mydata.length; i++){
+                var li = document.createElement('li');
+                li.className = 'list-group-item';
+                var datestr = '[点赞数：' + mydata[i].count + ']';
+                var p1 = document.createElement('p');
+                p1.append(document.createTextNode(datestr));
+                li.append(p1);
+                var textstr = mydata[i].text;
+                var p2 = document.createElement('p');
+                p2.className = 'text-left';
+                p2.append(document.createTextNode(textstr));
+                li.append(p2);
+                ul.append(li);
+            }
+            display.append(ul);
+        }
+        $('#btn_like').click(function(){
+            displayLike(like_data);
+        });
+
+        window.onload = function(){
+            myajax("宝马");
+        }
 
     </script>
 </body>
